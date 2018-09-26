@@ -1,3 +1,0 @@
-# git
-
-*Start Git*
