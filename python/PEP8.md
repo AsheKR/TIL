@@ -203,3 +203,153 @@ __author__ = 'Cardinal Biggle'
 import os
 import sys
 ```
+
+## 따옴표
+파이썬에서 문자열을 표현할 때 큰 따옴표, 작은 따옴표 아무거나 사용 가능하다.
+다만 문자열 안에서 따옴표를 사용하여야할 때, 가독성을 위해 백슬래시 사용을 피하도록 적절히 따옴표를 선택해야한다.
+
+세개의 따옴표를 사용할때는 `쌍 따옴표`를 사용한다.
+
+## 표현식에서 공백
+
+아래 상황에서의 공백을 피하자.
+- 괄호안의 양쪽 끝
+```python
+Yes: spam(hame[1], {eggs: 2})
+No: spam( hame[ 1 ], { eggs: 2 } )
+```
+- 뒤에오는 쉼표와 뒤에오는 닫는 괄호 사이
+```python
+Yes: foo = (0,)
+No: bar = (0, )
+```
+- 콤마, 세미콜론, 콜론의 바로 앞
+```python
+Yes: if x == 4: print x, y; x, y = y, x
+No: if x == 4: printx , y ; x , y = y , x
+```
+- 슬라이스에서의 콜론은 이진 연산자와 같이 적용되며, 양쪽에서 같은 공백을 가진다. 
+- 확장된 슬라이스에서 두개의 콜론은 같은 간격을 가진다. 
+- 예외적인 상황은 슬라이스 파라미터가 생략되거나 공간이 생략되는 경우
+```python
+Yes: 
+ham[1:9], ham[1:9:3], ham[:9:3], ham[1::3], ham[1:9:]
+ham[lower:upper], ham[lower:upper:], ham[lower::step]
+ham[lower+offset : upper+offset]
+ham[: upper_fn(x) : step_fn(x)], ham[:: step_fn(x)]
+ham[lower + offset : upper + offset]
+
+No:
+ham[lower + offset:upper + offset]
+ham[1: 9], ham[1 :9], ham[1:9: 3]
+ham[lower : : upper]
+ham[ : upper]
+```
+- 함수 호출 괄호 앞의 공백은 존재하지 않는다.
+```python
+Yes: spam(1)
+No: spam (1)
+```
+- 인덱싱, 슬라이싱 괄호 앞의 공백은 존재하지 않음
+```python
+Yes: dct['key'] = lst[index]
+No:  dct ['key'] = lst [index]
+```
+- 다른 변수와의 줄맞춤을 위한 연산자 주변의 하나 이상의 공백
+```python
+Yes:
+x = 1
+y = 2
+long_variable = 3
+
+No:
+x			  = 1
+y			  = 2
+long_variable = 3
+```
+
+## 다른 권장사항
+- 어디서든 후행공백을 피한다. 후행공백은 시작적으로 보이지 않기때문에 혼란을 만들 가능성이 많다. 예로 백슬래쉬 뒤 오는 공백이나 줄바꿈은 문장이 이어지는것을 표현하는 마커 역할을 하지 못한다. 몇 에디터는 이를 허용하지 않는 `pre-commit` 훅을 가진다.
+- 이진 연산자는 양쪽에 하나의 공백을 반드시 둔다. 우선순위가 다른 연산자를 사용하는 경우, 우선 순위가 가장 낮은 연산자 주위에 공백을 추가하는 것이 좋다. 그러나 둘 이상의 공백은 사용하지 말고, 항상 이진연산자 양쪽에 같은 양의 공백을 사용하자.
+```python
+Yes:
+i = i + 1
+submitted += 1
+x = x*2 - 1
+hypot2 = x*x + y*y
+c = (a+b) * (a-b)
+
+No:
+i=i+1
+submitted +=1
+x = x * 2 - 1
+hypot2 = x * x + y * y
+c = (a + b) * (a - b)
+```
+
+- `Function Annotation`은 콜론에 대한 일반 규칙을 사용해야하며 항상 -> 화살표 주위에 공백이 있어야한다.
+```python
+Yes:
+def munge(input: AnyStr): ...
+def munge() -> AnyStr: ...
+
+No:
+def munge(input:AnyStr): ...
+def munge()->PosInt: ...
+```
+
+- 함수의 파라미터로 기본값을 나타내기위해 `=` 사이에 공백을 사용하지 말도록 한다.
+```python
+Yes:
+def complex(real, imag=0.0): ...
+
+No:
+def complex(real imag = 0.0): ...
+```
+
+그러나 인수 주석을 기본값과 결합할 때 = 기호 주위에 공백을 사용한다.
+
+```python
+Yes:
+def munge(sep: AnyStr = None): ...
+def munge(input: AnyStr, sep: AnyStr = None, limit=1000): ...
+
+No:
+def munge(input: AnyStr=None): ...
+def munge(input: AnyStr, limit = 1000): ...
+```
+
+- 합성구문은 일반적으로 좋지 않다.
+```python
+Yes:
+if foo == 'blah':
+	do_blah_thing()
+do_one()
+do_two()
+do_three()
+
+Rather not:
+if foo == 'blah': do_blah_thing()
+do_one(); do_two(); do_three()
+```
+
+종종 `if/for/while` 구문의 같은 줄에 짧은 바디가 같이 놓이는 것은 괜찮지만, 여러 줄을 이런식으로 구성하지 않을 것을 당부한다. 또한 긴 줄을 접는것을 피한다.
+
+```python
+Rather not:
+if foo == 'blah': do_blah_thing()
+fox in lst: total += x
+whilte t < 10: t = delay()
+
+Definitely not:
+if foo == 'blah': do_blah_thing()
+else: do_non_blah_thing()
+
+try: something()
+finally: cleanup()
+
+do_one(); do_two(); do_three(long, argument,
+							list, like, this)
+
+if foo == 'blah': one(); two(); three();
+```
