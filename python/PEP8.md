@@ -6,6 +6,7 @@
 ## 번역 참고
 
 [Luavis' Dev Story](https://b.luavis.kr/python/python-convention)
+
 [kongdols-room](https://kongdols-room.tistory.com/18)
 
 ## 코드 레이아웃
