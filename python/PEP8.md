@@ -22,7 +22,7 @@
 ```python
 # 구분자를 사용하여 정렬
 foo = long_function_name(var_one, var_two,
-						var three, var_four)
+			var three, var_four)
 
 # 괄호 아래서부터 첫 요소가 있을 경우 한 레벨 이외에 부가적인 indent는 필요하지 않는다.
 foo = long_function_name(
@@ -85,10 +85,10 @@ with open('/path/to/some/file/you/want/to/read') as file_1, \
 - 각 연산자는 피연산자 이후에 배치된다.
 ```python
 incom = (gross_wages +
-		taxable_interest +
-		(dividends - qualified_dividends) -
-		ira_deduction -
-		student_loan_interest)
+	taxable_interest +
+	(dividends - qualified_dividends) -
+	ira_deduction -
+	student_loan_interest)
 ```
 
 
@@ -96,10 +96,10 @@ incom = (gross_wages +
 첫 단락에 `첫 피연산자` 이후 줄바꿈되고 `연산자 + 피연산자`가 오게된다.
 ```python
 income = (gross_wages
-		+ texable_interest
-		+ (dividends - qualified_dividends)
-		- ira_deduction
-		- student_loan_interest)
+	+ texable_interest
+	+ (dividends - qualified_dividends)
+	- ira_deduction
+	- student_loan_interest)
 ```
 
 ### 빈 줄
@@ -265,9 +265,9 @@ y = 2
 long_variable = 3
 
 No:
-x			  = 1
-y			  = 2
-long_variable = 3
+x		= 1
+y		= 2
+long_variable 	= 3
 ```
 
 ### 다른 권장사항
@@ -378,8 +378,8 @@ FILES = [
 	'tox.ini',
 	]
 initialize(FILES,
-			error=True,
-			)
+	error=True,
+	)
 
 No:
 FILES = ['setup.cfg', 'tox.ini',]
