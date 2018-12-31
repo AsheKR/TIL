@@ -407,3 +407,77 @@ initialize(FILES, error=True,)
 코드와 동일행에서 시작하는 주석문이다.
 구문으로부터 최소 2개의 스페이스로 구분되어야한다.
 뻔한 내용의 인라인 주석문은 작성하지 않는다.
+
+### Documentation Strings
+"docstring"을 작성하는 좋은 습관은 PEP257에 기록되어있다.
+
+- 모든 공개 모듈, 함수, 클래스 및 메서드에대해 docstring을 작성한다. docstring은 public이 아닌 메서드에는 필요하지 않지만 메서드가 수행하는 작업을 설명하는 주석이 있어야한다. 이 설명은 `def`줄 뒤에 나타나야한다.
+- PEP257은 올바른 문서화 규칙을 설명한다. 중요한 것은 여러줄로 구성된 docstring의 끝에는 """만을 가지는 한줄이 있어야한다.
+
+```python
+"""Return a foobang
+
+Optional plotz says to frobnicate the bizbaz first.
+"""
+```
+- 만약 한줄로 docstring을 구성한다면 닫는 """는 같은 줄에 놓는다.
+
+## Naming Conventions
+파이썬 라이브러리의 명명규칙은 다소 혼란스럽다. 그래서 완전한 일관성 유지는 힘들다. 현재 권장 명명 표준은 있다. 새 모듈과 패키지는 이 표준에 작성해야하지만 기존 라이브러리의 스타일인경우 내부 일관성이 선호된다.
+
+### Overriding Principle
+`{*?}`
+
+### Descriptive: Naming Styles
+세상에는 다른 명명스타일이 많다. 명명 스타일은 이 스타일이 어떤 목적으로 스이는지와 별개로, 어떤 명명 스타일이 쓰이고 있는지 알아보는데 도움이 된다.
+다음의 명명 스타일을 흔히 볼 수 있다:
+- b (한개의 소문자)
+- B (한개의 대문자)
+- lowercase
+- lower_case_with_underscores
+- UPPERCASE
+- UPPERCASE_WITH_UNDERSCORES
+- CapitalizedWords (CapWords 혹은 CamelCase, StudlyCaps라고도 불린다.)
+	 CapsWords에서 약어를 사용할경우, 모든 글자를 대문자로 기술한다.
+- mixedCase(CapWords와 다른점은 첫 글자가 소문자)
+- Capitalized_Words_With_Underscores (별로다)
+
+서로 연관있는 명칭을 통합하기위해 짧은 고유 접두사를 사용하는 스타일이 있다. 이는 파이썬에서 많이 사용되지는 않지만, 완전성을 위해 언급한다.  예를들어 `os.stat()` 기능은 `st_mode, st_size, st_mtime`와 같이 전통적인 이름을 가진 튜플을 반환한다. (이는 POSIX 시스템 호출 구조체와 필드와의 통신을 강조하기 위해 수행된다.)
+X11 라이브러리는 모든 public함수에 대해 앞에 X를 사용한다. 파이썬에서 오브젝트가 속성과 메서드 이름에 접두어로 붙고, 함수 이름에 모듈 이름이 접두어로 붙기 때문에 이 스타일은 일반적으로 필요하지 않다고 여겨진다.
+
+추가적으로 앞 혹은 뒤에 언더스코어를 사용한 아래의 특수 형태가 된다. (일반적으로 어느 작성 규칙에도 조합 가능하다.)
+- `_single_leading_underscore_`: 내부에서 사용한다는것을 의미한다. 예를 들면, `from M import *`는 언더스코어로 시작하는 객체를 임포트하지 않는다.
+- `single_traling_underscore_`: 파이썬 키워드와의 충돌방지를 위해 사용된다.
+```python
+Tkinter.Toplevel(master, class_='ClassName')
+```
+- `__double_leading_underscore`: 클래스의 어트리뷰트의 이름을 지으면 네임 맹글링이 발생한다
+- `__double_leading_and_trailing_underscore__`: 사용자가 관리하는 네임스페이스 내 있는 `magic method`에 사용된다. 이러한 이름을 정의해 사용하면 안되고, 이미 문서에 나와있는 내용만을 사용해야한다.
+
+### 규정: 명명 규칙
+#### 피해야할 이름
+'l'(소문자 L), 'O' (대문자 O), 'I' (대문자 I) 한 글자를 변수 이름으로 사용하지 않는다.
+특정 폰트에서는 이 글자들을 구별할 수 없다. 'l'를 굳이 사용해야하는 경우 차라리 'L'을 사용하도록 하자.
+
+#### ASCII 호환성
+표준 라이브러리에 사용되는 식별자는 PEP 3131의 정책 섹션에 설명된대로 ASCII호환 가능해야한다.
+
+#### 패키지와 모듈 이름
+모듈은 짧으며 모두 소문자인 이름을 가져야한다. 언더스코어는 가독성을 향상시킬 수 있을 경우에 모듈의 이름에 사용될 수 있다. 파이썬 패키지의 이름 또한 짧으며 모두 소문자여야 하지만, 언더스코어는 사용될 수 없다.
+
+C 또는 C++로 씌여진 확장 모듈이 높은 레벨(더욱 객체지향적인) 인터페이스를 제공하는 파이썬 모듈을 가질 때, C/C++ 모듈은 앞에 언더스코어가 있어야한다.
+
+#### 클래스 이름
+클래스 이름은 CapWords 작성 규칙을 사용한다.
+함수에 대한 이름 작성 규칙은 인터페이스가 문서화되고 주로 호출이 가능하게 사용되어질 경우 대신 사용된다.
+내장된 이름에 대한 별도의 규칙이 있음에 유의하자. 대부분의 내장 이름은 단일 단어(혹은 두 단어가 함께 실행됨)이며 예외 이름 및 내장 상수에만 사용되는 CapWords 규칙이 있다.
+
+#### 타입 변수 이름
+PEP484에 소개된타입 변수의 이름은 짧은 이름을 선호하는 CapWord방식을 사용한다. `T`, `AnyStr`, `Num`과 같이 공변(covariant)하거나 반변(contravariant)하는 행동을 가진 변수들에 대해서는 접미사 `_co` 혹은 `_contra`가 붙여지는 것이 권장된다.
+
+```python
+from typing import TypeVar
+
+ VT_co = TypeVar('VT_co', covariant=True)
+ KT_contra = TypeVar('KT_contra', contravariant=True)
+```
