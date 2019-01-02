@@ -585,4 +585,148 @@ def f(x): return 2*x
 Noe:
 f = lambda x: 2*x
 ```
-첫 형식은 결과 함수 객체의 이름이 제네릭 '<lambda>'인 대신 'f'인 것을 의미한다. 일반적으로 traceback 및 문자열 표현에 더 유리하다. 명시적인 def문보다 람다 표현식이 제공할 수 있는 유일한 이점이 제거된다. (즉 더 큰 표현식에 포함될 수 있는 이점)
+첫 형식은 결과 함수 객체의 이름이 제네릭 '<lambda>'인 대신 'f'인 것을 의미한다. 일반적으로 traceback 및 문자열 표현에 더 유리하다. 할당문의 사용은 람다 표현식이 제공하는 def문보다 더 유리한 장점을 없앤다. (더 큰 표현식에 포함될 수 있는 것)
+	
+- `BaseException`보다는 `Exception`에서 예외를 파생시킨다. `BaseException`으로부터 직접적 상속은 예외를 잡는것이 잘못되는 경우를 위해 있다.
+
+예외가 발생하는 위치보다는 예외를 잡는 코드가 필요할 수 있는 구분을 기반으로 예외 체계를 설계하자. "문제가 발생했다" 보다는 "무엇이 문제인가"에 대한 질문에 대답하는것을 목표로 하도록 한다. (내장 예외계층은 PEP3151을 참고하자)
+
+예외가 오류인 경우 예외 클래스에 "Error" 접미사를 더하더라도, 클래스 네이밍 규칙은 이를 사용한다. 비 로컬 흐름제어 또는 다른 형태의 시그널링에 사용되는 에러가 없는 예외는 접미사를 붙일 필요는 없다.
+
+- 예외 체인을 적절히 사용한다. 파이썬 3에서 `raise X from Y`는 오리지널 traceback을 잃지 않고 explicit replacement를 나타낼 때 사용한다.
+
+의도적으로 내부 예외(파이썬 2에서는 "raise X"를 사용하거나 파이썬 3.3+에서는 `raise X from None`을 사용하여)가 교체될 때, 관련 세부사항이 새로운 예외(예: KeyError를 AttributeError로 변환할 때 속성 이름을 유지하거나 원래 예외의 텍스트를 새로운 예외 메세지에 포함하는 경우)로 전송되는지 확인하도록 한다.
+
+- 파이썬 2에서 예외가 나타날 때 `raise ValueError, 'message'`와같은 오래된 형태보다는 `raise ValueError('message')`를 사용하도록 한다.
+
+전자의 경우 Python3 문법에 어긋난다.
+
+paren-using 형식은 예외 독립변수가 길거나 문자열 포맷을 포함하고 있을 때 포함된 괄호덕에 연속문자를 사용할 필요가 없다는 것을 의미한다.
+
+- 예외를 설정할 때, 가능하다면 `except:`를 사용하는 것보다는 특정 예외를 언급하자.
+```python
+try:
+	import platform_specific_module
+except ImportError:
+	platform_specific_module = None
+```
+
+- bare `excpet:`절은 컨트롤 C를 사용하여 프로그램을 중단시키지 못하게하는 `SystemExist`와 `KeyboardInterrupt` 예외를 잡을 수 있고 다른 문제를 숨길 수 있다. 만약 사용자가 모든 예외를 잡기 원한다면 except Exception:을 사용하도록한다. (`bare except`는 `except BaseException:`과 동일하다.)
+
+가장 좋은 규칙은 아래의 두 케이스에서 bar 'except'구문의 사용을 제한하도록 한다.
+1. 만약 예외 핸들러가 트랙백을 출력하거나 로그를 만든다면, 적어도 사용자는 에러가 났다는 것을 알것이다.
+2. 만약 코드가 정리작업이 필요하다면, 예외를 raise하여 오류를 전파하지 못하게 한다. `raise, try.. finally`가 이런 케이스를 다루기 위해서는 더 나은 방법이다.
+이름에 대해 발견된 예외를 바인딩할 때, 파이썬 2.6에서 추가된 explicit 이름 바인딩 문법을 선호하도록 한다.
+```python
+try:
+	process_data()
+excpet Exception sa exc:
+	raise DataProcessingFailedError(str(exc))
+```
+- 이는 파이썬 3에서만 지원되는 문법이고, 오래된 콤마 기반 구문과 연관된 애매한 문제들을 피할 수 있게 해준다.
+
+시스템 에러를 잡을 때, `errorno`값의 내향적참택보다는 파이썬 3.3에서는 explicit 예외 계층을 선호한다.
+모든 try/except 구문에 대해 try 구문의 적용 범위를 최소화한다. 이는 버그가 겹치는 일을 막아준다.
+```python
+Yes:
+
+try:
+	value = collection[key]
+except KeyError:
+	return key_not_found(key)
+else:
+	return handle_value(value)
+No:
+
+try:
+	# 적용 범위가 넓다!
+	return handle_value(collection[key])
+except KeyError:
+	# handle_value()가 발생시킨 KeyError를 처리
+	return key_not_found(key)
+```
+
+- 리소스가 코드의 특정 섹션에 위치할 때, 이것이 사용 이후 즉시 신뢰성있게 정리되는 것을 보장하도록 with 구문을 사용하거나 try/finally 문 역시 적용할만하다.
+
+- 리소스 점유/해제 외의 작업을 제외하고, 어떤 작업을 할때 별도의 함수/메서드를 통해 문맥(context) 관리자를 호출해야한다.
+
+```python
+Yes:
+
+with conn.begin_transaction():
+	do_stuff_in_transaction(conn)
+No:
+
+with conn:
+	do_stuff_in_transaction(conn)
+```
+후자의 예는 `__enter__, __exit__` 메서드가 트랜잭션 이후에 커넥션을 닫는다는 것 외에는 어떤 일을 하는지에 대한 정보를 제공하지 않는것을 볼 수 있다. 이러한 경우 명시적인 정보 제공은 중요하다.
+
+- return 구문에서 일관성을 유지하도록한다.
+함수에 있는 모든 return 구문은 반드시 표현식을 반환하거나, 없어야한다.
+만약 어떤 return 구문이 표현식을 반환했다면, return 구문이 반환되는 값이 없는 곳에서는 `return None`을 확실히하고 함수의 끝에(도달 가능하다면) 명시적 return 구문이 존재해야한다.
+```python
+Yes:
+
+def foo(x):
+	if x >= 0:
+		return math.sqrt(x)
+	else:
+		return None
+
+def bar(x):
+	if x < 0:
+		return None
+	return math.sqrt(x)
+No:
+
+def foo(x):
+	if x >= 0:
+		return math.sqrt(x)
+
+def bar(x):
+	if x < 0:
+		return
+	return math.sqrt(x)
+```
+
+- string 모듈 대신 문자열 관련 메서드를 사용한다.
+문자열 메서드는 항상 좀 더 빠르며 유니코드 문자열과 동일한 API를 공유한다. 파이썬 2.0 이하 버전과의 하위 호환성이 필요한 경우 이 규칙을 무시해도 된다.
+
+- 문자열의 접두사/접미사를 확인하기 위해 문자열을 직접 자르는 대신, `''.startswith()`와 `''.endswith()`를 사용한다.
+
+startswith()와 endswith()는 의미가 명확하므르 오류 발생 여지가 적다.
+```python
+Yes: if foo.startswith('bar'):
+No: if foo [:3] == 'bar':
+```
+
+- 객체 타입 비교시 타입을 직접 비교하지말고 항상 `isinstanc()`를 사용한다.
+```python
+Yes: if isinstance(obj, int):
+No: if type(obj) is type(1):
+```
+객체가 문자열인지 확인할 경우, 해당 문자열이 유니코드 문자열일 수도 있다는것을 명심하자. 파이썬 2.3에서는 str, unicode가 동일한 기본 클래스인 basestring을 상속하므로 다음과 같은 구문을 사용할 수 있다.
+```python
+if isinstance(obj, basestring):
+```
+파이썬3에서는 unicode와 basestring이 더이상 존재하지않으며 (str만 있음), bytes는 더이상 문자열이 아니다. (대신 정수의 순서)
+
+- 배열의 형태 타입은 그 내용이 비어있을 때 false를 반환한다는 사실을 활용한다.
+```python
+Yes: if no seq:
+    if seq:
+	
+No: if len(seq):
+    if not len(seq):
+```
+
+- 후행공백에 의존하는 문자열을 작정하지 않는다. 이렇게 뒤에 붙은 공백 문자는 눈에 잘 띄지 않으며, 일부 편집기에서는 이러한 공백 문자를 제거한다.
+
+- `==`를 사용하여 True/False값을 비교하지 않는다.
+```python
+Yes: if greeting:
+No: if greeting == True:
+Worse: if greeting is True:
+```
+
