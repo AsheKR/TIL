@@ -285,7 +285,7 @@ def filter(self, qs, value):
 
 #### 공통
 
-반드시 커스텀필드를 작성하였으면 FilterSet 클래스의 Meta에 `fields`란에 기입해주어야한다.
+커스텀필드를 작성하였으면  FilterSet 클래스의 Meta에 `fields`란에 기입해주어야한다.
 
 
 
