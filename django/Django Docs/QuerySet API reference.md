@@ -580,3 +580,401 @@ obj, created = Person.objects.get_or_create(
 
 **update_or_create(defaults=None, \*\*kwargs)**
 
+---
+
+#### bulk_create()
+
+**bulk_create(objs, batch_size=None)**
+
+이 방법은 제공된 객체 목록을 효율적인 방식으로 데이터베이스 삽입한다.
+
+```python
+>>> Entry.objects.bulk_create([
+...     Entry(headline='This is a test'),
+...     Entry(headline='This is only a test'),
+... ])
+```
+
+몇가지 주의사항이 있다.
+
+- 모델의 **save()** 메서드는 호출되지 않고 **pre_save** 및 **post_save** 신호는 전송되지 않는다.
+- 다중 테이블 상속 시나리오에서 하위 모델에서는 작동하지 않는다.
+- 모델의 기본 키가 **AutoField**인 경우 데이터베이스 백엔드가 현태 PostgreSQL을 지원하지 않는 한 **save()**처럼 기본 키 속성을 검색 및 설정하지 않는다.
+- 다대다 관계에서는 작동하지 않는다.
+
+```python
+from itertools import islice
+
+batch_size = 100
+objs = (Entry(headline='Test %s' % i) for i in range(1000))
+while True:
+    batch = list(islice(objs, batch_size))
+    if not batch:
+        break
+    Entry.objects.bulk_create(batch, batch_size)
+```
+
+**batch_size**매개변수는 단일 쿼리에서 생성되는 객체 수를 제어한다. 디폴트는 모든 오브젝트를 하나의 실행에서 생성한다.
+
+---
+
+#### count()
+
+**count()**
+
+**QuerySet**과 일치하는 데이터베이스의 객체 수를 나타내는 정수를 반환한다.
+
+```python
+# Returns the total number of entries in the database.
+Entry.objects.count()
+
+# Returns the number of entries whose headline contains 'Lennon'
+Entry.objects.filter(headline__contains='Lennon').count()
+```
+
+**count()** 호출은 뒤에서 **SELECT COUNT (*)**를 수행한다.
+
+---
+
+#### in_bulk()
+
+**in_bulk(id_list=None, field_name='pk')**
+
+필드 값 목록 (**id_list**)과 해당 값의 **field_name**을 가져와 주어진 값을 사용하여 각 값을 해당 개체의 인스턴스에 매핑하는 사전을 반환한다. **id_list**가 제공되지 않으면, 쿼리셋은 모든 오브젝트가 리턴된다. **fied_name**은 고유 필드여야하며 기본값으 기본 키이다.
+
+```python
+>>> Blog.objects.in_bulk([1])
+{1: <Blog: Beatles Blog>}
+>>> Blog.objects.in_bulk([1, 2])
+{1: <Blog: Beatles Blog>, 2: <Blog: Cheddar Talk>}
+>>> Blog.objects.in_bulk([])
+{}
+>>> Blog.objects.in_bulk()
+{1: <Blog: Beatles Blog>, 2: <Blog: Cheddar Talk>, 3: <Blog: Django Weblog>}
+>>> Blog.objects.in_bulk(['beatles_blog'], field_name='slug')
+{'beatles_blog': <Blog: Beatles Blog>}
+```
+
+---
+
+#### iterator()
+
+**iterator(chunk_size=2000)**
+
+쿼리를 수행하여 **QuerySet**을 평가하고 결과에 대해 반복자를 반환한다. **QuerySet**은 일반적으로 결과를 내부적으로 캐시하므로 반복되는 평가로 인해 추가 쿼리가 발생하지 않는다. 대조적으로 **iterator()**는 **QuerySet** 레벨에서 캐싱하지 않고 결과를 직접 읽는다. (내부적으로 기본 반복자는 **iterator()**를 호출하고 반환값을 캐시한다.)  한번 액세스해야하는 많은 수의 객체를 반환하는 **QuerySet**의 경우 성능이 향상되고 메모리가 크게 감소 할 수 있다.
+
+이미 평가된 **QuerySet**에서 **iterator()**를 사용하면 쿼리를 반복하여 평가할 수 있다.
+
+또한 **iterator()**를 사용하면 이전의 **prefetch_related()** 호출이 무시된다. 이러한 두 최적화는 함께 이해할 수 없기때문에 무시된다.
+
+---
+
+#### latest()
+
+**latest(\*fields)**
+
+주어진 필드를 기반으로 최신 객체를 반환한다.
+
+---
+
+#### earliest()
+
+**earliest(\*fields)**
+
+latest와는 반대로 제일 오래된 객체를 반환한다.
+
+---
+
+#### first()
+
+**first()**
+
+쿼리 세트와 일치하는 첫 번째 객체를 반환하거나 일치하는 객체가 없는 경우 None을 반환한다. **QuerySet**에 순서가 정의되어 있지 않으면 쿼리세트는 기본키에 의해 자동으로 정렬된다.
+
+---
+
+#### last()
+
+**last()**
+
+first()와는 반대로 작동한다.
+
+---
+
+#### aggregate()
+
+**aggregate(\*args, \*\*kwargs)**
+
+**QuerySet**을 통해 계산 된 집계값의 dictionary를 반환한다. **aggregate()**의 각 인수는 반환되는 사전에 포함될 값을 지정한다.
+
+---
+
+#### exists()
+
+**exists()**
+
+**QuerySet**에 결과가 있으면 **True**를 반환하고 그렇지 않으면 **False**를 반환한다.
+
+---
+
+#### update()
+
+**update(\*\*kwargs)**
+
+지정된 필드에 대한 SQL 업데이트 쿼리를 수행하고 일치하는 행 수를 반환한다.
+
+주 테이블관련 열만 업데이트 할 수 있다.
+
+---
+
+#### delete()
+
+**delete()**
+
+모든 행에 대해 sql 삭제 쿼리를 수행하고 삭제된 개체 수와 개체 유형 당 삭제 수가 있는 사전을 반환한다.
+
+**delete()** 메서드는 대량 삭제를 수행하고 모델에서 **delete()**메서드를 호출하지 않는다. 그러나 모든 삭제된 객체에 대해 **pre_delete** 및 **post_delete** 신호를 보낸다.
+
+Django는 신호를 보내고 처리하기위해 객체를 메모리로 가져와야한다. 그러나 캐스케이드나 신호가 없는 경우 메모리로 가져오지 않고 객체를 삭제할 수 있다. 큰 삭제는 이로 인한 메모리 사용량이 크게 줄 수 있다.
+
+---
+
+#### as_manager()
+
+QuerySet 메서드의 복사본이 있는 Manager 인스턴스를 반환하는 클래스메서드이다.
+
+---
+
+#### explain()
+
+**QuerySet**이 실행할 계획의 문자열을 반환한다.
+
+이는 데이터베이스에서 쿼리에 사용되는 인덱스나 조인을 포함하여 데이터베이스에서 쿼리를 실행하는 방법이 자세히 설명되어 있다. 이러한 세부 정보를 알고 있으면 느린 쿼리의 성능을 향상시키는데 도움이 될 수 있다.
+
+```python
+>>> print(Blog.objects.filter(title='My Blog').explain())
+Seq Scan on blog  (cost=0.00..35.50 rows=10 width=12)
+  Filter: (title = 'My Blog'::bpchar)
+```
+
+---
+
+### Field lookups
+
+**SQL WHERE**절을 지정하는 방법이다. **filter**, **exclude**, **get**에 대한 키워드 인수로 지정된다.
+
+
+
+#### exact
+
+#### ieaxct
+
+#### contains
+
+#### icontains
+
+#### in
+
+#### gt
+
+#### gte
+
+#### lt
+
+#### lte
+
+#### startswith
+
+#### istartswith
+
+#### endswith
+
+#### iendswith
+
+---
+
+#### range
+
+```python
+import datetime
+start_date = datetime.date(2005, 1, 1)
+end_date = datetime.date(2005, 3, 31)
+Entry.objects.filter(pub_date__range=(start_date, end_date))
+```
+
+---
+
+#### date
+
+#### year
+
+#### month
+
+#### day
+
+#### week
+
+---
+
+#### week_day
+
+요일(월 - 금)을 비교한다.
+
+1(일) ~ 7(토)의 값을 가진다.
+
+---
+
+#### quater
+
+분기와 비교한다.
+
+---
+
+#### time
+
+#### hour
+
+#### minute
+
+#### second
+
+#### isnull
+
+#### regex
+
+#### iregex
+
+---
+
+### Aggregation functions
+
+모든 집계에는 공통적으로 다음 매개변수가 존재한다.
+
+#### expressions
+
+#### output_field
+
+#### filter
+
+#### \*\*extra
+
+---
+
+#### Avg
+
+주어진 표현식의 평균값을 반환한다. 다른 **output_field**를 지정하지 않으면 숫자이여야한다.
+
+- Default alias: **\<field\>__avg**
+- Return type: **float** 또는 **output_field**로 지정된 값
+
+---
+
+#### Count
+
+- Default alias: **\<field\>__count**
+- Return type: **int**
+
+추가적인 옵션을 사용할 수 있다.
+
+##### disinct
+
+---
+
+#### Max
+
+- Default alias: **\<field\>__max**
+- Return type: input field와 같거나 **output_field**로 지정된것
+
+---
+
+#### Min
+
+- Default alias: **\<field\>__max**
+- Return type: input field와 같거나 **output_field**로 지정된것
+
+---
+
+#### StdDev
+
+표준편차를 반환한다.
+
+- Default alias: **\<field\>__stdev**
+- Return type: **float**
+
+---
+
+#### Sum
+
+- Default alias: **\<field\>__sum**
+- Return type: input field와 같거나 **output_field**로 지정된것
+
+---
+
+#### Variance
+
+데이터의 분산을 반환한다.
+
+- Default alias: **\<field\>__variance**
+- Return type: **float**
+
+---
+
+## Query-related tools
+
+다른 곳에서 문서화되지 않은 쿼리 관련 도구에 대한 참조 자료를 제공한다.
+
+### Q objects
+
+**F object** 같은 **Q() object** 객체는 데이터베이스 관련 작업에 사용할 수 있는 Python 객체의 SQL 표현식을 캡슐화한다.
+
+일반적으로 **Q() object** 를 사용하면 조건을 정의하고 다시 사용할 수 있다. 그러면 **OR** 및 **AND** 연산자를 사용하여 복잡한 데이터베이스 조회를 작성할 수 있다.
+
+### Prefetch() objects
+
+**prefetch_related()**의 동작을 제어하는 데 사용될 수 있다. **lookup**인수는 따라야 할 관계를 설명하고 **prefetch_related()**에 전달된 문자열 기반 조회와 동일하게 작동한다.
+
+```python
+>>> from django.db.models import Prefetch
+>>> Question.objects.prefetch_related(Prefetch('choice_set')).get().choice_set.all()
+<QuerySet [<Choice: Not much>, <Choice: The sky>, <Choice: Just hacking again>]>
+# This will only execute two queries regardless of the number of Question
+# and Choice objects.
+>>> Question.objects.prefetch_related(Prefetch('choice_set')).all()
+<QuerySet [<Question: What's up?>]>
+```
+
+**queryset**인수는 지정된 조회에 대한 기본 **QuerySet**을 제공한다. 이는 프리패치 연산을 추가로 필터링하거나 프리패치 된 관계에서 **select_related()**를 호출하여 쿼리의 수를 더 줄이는데 유용하다.
+
+```python
+>>> voted_choices = Choice.objects.filter(votes__gt=0)
+>>> voted_choices
+<QuerySet [<Choice: The sky>]>
+>>> prefetch = Prefetch('choice_set', queryset=voted_choices)
+>>> Question.objects.prefetch_related(prefetch).get().choice_set.all()
+<QuerySet [<Choice: The sky>]>
+```
+
+**to_attr** 인자를 사용하여 프리패치 조작의 결과를 사용자 정의 속성으로 정의한다.
+
+```python
+>>> prefetch = Prefetch('choice_set', queryset=voted_choices, to_attr='voted_choices')
+>>> Question.objects.prefetch_related(prefetch).get().voted_choices
+[<Choice: The sky>]
+>>> Question.objects.prefetch_related(prefetch).get().choice_set.all()
+<QuerySet [<Choice: Not much>, <Choice: The sky>, <Choice: Just hacking again>]>
+```
+
+> **to_attr**을 사용할 때 프리패치 결과가 list에 저장된다. 이렇게하면 캐시된 결과를 QuerySet 인스턴스에 저장하는 기존의 prefetch_related 호출에 비해 속도가 크게 향상될 수 있다.
+
+---
+
+### prefetch_related_objects()
+
+?
+
+---
+
+### FilteredRelation() objects
+
+?
+
