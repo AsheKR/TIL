@@ -145,6 +145,8 @@ zappa를 통해 Django를 배포해보자. IAM Credential만 잘 설정하면 �
 
 ​	사용자 ID는 https://console.aws.amazon.com/iam/home?region=ap-northeast-2#/home 에 접속했을 때 `IAM 사용자 로그인 링크: `의 링크에 12자리의 숫자이다. (`https://<사용자 ID>.signin.aws.amazon.com/console`)
 
+다른 권한이 필요하게되면 그때 하나씩 추가하는것을 권장한다.
+
 
 
 
@@ -273,7 +275,6 @@ $ alias zappashell >> ~/.bash_profile
 ```shell
 $ alias zappashell='sudo docker run -ti -e AWS_PROFILE=zappa -v "$(pwd):/var/task" -v ~/.aws/:/root/.aws  --rm myzappa'
 $ alias zappashell | { read s; echo "alias ${s}" } >> ~/.zshrc
-
 ```
 
 
@@ -287,7 +288,6 @@ $ zappashell
 zappashell> python -m venv ve
 zappashell> source ve/bin/activate 
 (ve) zappa> pip install -r requirements.txt
-
 ```
 
 가상환경의 현재 디렉터리는 로컬 시스템의 프로젝트에 매핑되어있다. `virtualenv`가 현재 폴더에 `ve` 폴더를 만들고 그 안에 Python 라이브러리들이 설치되어 컨테이너가 종료되어도 유지될 수 있지만 , 시스템라이브러리의 경우 컨테이너가 종료되면 손실된다. 해결책은 Dockerfile에 `RUN` 명령어를 사용하여 설치를 유지하는것이다.
@@ -301,6 +301,144 @@ $ cd /your_zappa_project
 $ zappashell
 zappashell> source ve/bin/activate
 (ve) zappashell> 
+```
 
+
+
+### 3. Django Setup
+
+```shell
+(ve) zappashell> django-admin startproject config
+(ve) zappashell> mv config app
+```
+
+이후 config 설정에서 바꾸어주어야할것이 있다. Lambda가 SQLite3의 지원을 하지 않는다. 그러므로 PostgreSQL을 사용하던가, zappa-django-utils를 사용하여 S3에 SQLite3를 두어야한다.
+
+AWS RDS - PostgreSQL을 사용하도록 한다.
+
+
+
+> **주의 사항**
+>
+> 프로젝트의 구성에따라 Lambda 배포 전략을 다르게 가져야한다.
+>
+> ```
+> ~/your_zappa_project/app/
+> 
+> app/       # project dir (django-admin.py로 생성도니 프로젝트)
+>   config/
+>   	settings/         # 설정을 패키지로 분리했을 때
+>         __init__.py
+>         production.py
+>         development.py
+>         ...
+>     __init__.py
+>     urls.py
+>     wsgi.py
+>   users/       # django-admin.py로 생성된 앱
+> ```
+>
+> 필자가 사용한 프로젝트 구성은 다음과 같다. 이 때 `your_zappa_project`에서 `zappa deploy`를 수행하였을 때 setting에서 프로젝트의 모듈의 위치를 불러오려하면 `ModuleNotFoundError`가 발생한다. 대표적으로 `ROOT_URLCONF`의 `config.urls`를 불러오지 못한다. 이를 성공적으로 작동시키려면 `app.config.urls`로 작성해야한다. 
+>
+> 이 때문에 필자는 `app`에서 `zappa deploy`를 수행한다. 프로젝트에 반드시 필요한 설정들을 `app`안에 넣고 배포에 필요하지 않은 자원, 테스트들을 `projects_root_dir`에 놓고 사용한다.
+
+
+
+### 4. Zappa init
+
+주의사항을 참고해 **app**에서 배포를 하도록한다.
+
+```shell
+(ve) zappashell> mv app
+(ve) zappashell> zappa init
+```
+
+
+
+Zappa 명령어로 간단하게 **zappa_setting** 파일을 생성할 수 있다.
+
+```
+# Lambda는 다양한 배포환경을 지원해준다.
+Your Zappa configuration can support multiple production stages, like 'dev', 'staging', and 'production'.
+What do you want to call this environment (default 'dev'): dev
+
+# credentials를 확인해 자동으로 프로필을 읽어온다. 사용하고자하는 프로필을 적는다.
+AWS Lambda and API Gateway are only available in certain regions. Let's check to make sure you have a profile set up in one that will work.
+We found the following profiles: default, and zappa. Which would you like us to use? (default 'default'): zappa
+
+# 배포에 사용될 Bucket의 이름을 작성한다.
+Your Zappa deployments will need to be uploaded to a private S3 bucket.
+If you don't have a bucket yet, we'll create one for you too.
+What do you want to call your bucket? (default 'zappa-qu0msfhly'): 
+
+# Django Settings의 위치를 적는다.
+It looks like this is a Django application!
+What is the module path to your projects's Django settings?
+(This will likely be something like 'your_project.settings')
+Where are your project's settings?: config.settings.production
+
+# Global Service를 위해 모든 region에 배포할지 물어본다.
+You can optionally deploy to all available regions in order to provide fast global service.
+If you are using Zappa for the first time, you probably don't want to do this!
+Would you like to deploy this application globally? (default 'n') [y/n/(p)rimary]: 
+```
+
+
+
+설정을 완료하면 해당 디렉터리에 `zappa_settings.json`이 생기게된다. 만약 그 json 파일에 **aws_region**이 없다면 명시하도록하자.
+
+```json
+{
+    "dev": {
+        "aws_region": "ap-northeast-2",
+        "django_settings": "config.settings.production",
+        "profile_name": "default",
+        "project_name": "django-base",
+        "runtime": "python3.6",
+        "s3_bucket": "zappa-qu0msfhly"
+    }
+}
+```
+
+
+
+### Zappa Deploy
+
+위의 작업을 모두 완료했으면 선택한 배포환경으로 배포할 수 있다.
+
+```
+(ve) $ zappa deploy dev
+Calling deploy for environment dev..
+Downloading and installing dependencies..
+100%|███████████████████████████████████████████████████████████████████████████████████████████| 27/27 [00:07<00:00,  3.91pkg/s]
+Packaging project as zip..
+Uploading zappatest-dev-1482425936.zip (13.1MiB)..
+100%|████████████████████████████████████████████████████████████████████████████████████████| 13.8M/13.8M [00:25<00:00, 603KB/s]
+Scheduling..
+Scheduled zappatest-dev-zappa-keep-warm-handler.keep_warm_callback!
+Uploading zappatest-dev-template-1482425980.json (1.5KiB)..
+100%|███████████████████████████████████████████████████████████████████████████████████████| 1.58K/1.58K [00:00<00:00, 2.08KB/s]
+Waiting for stack zappatest-dev to create (this can take a bit)..
+100%|█████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:18<00:00,  4.69s/res]
+Deploying API Gateway..
+Deployment complete!: https://x6kb437rh.execute-api.us-east-1.amazonaws.com/dev
+```
+
+**Deploy complete**가 뜬다면 성공적으로 완성한것이다. 만약 **Access**관련 문구가 보였다면 IAM에 가서 추가하도록한다.
+
+
+
+주어진 링크로 접속하게되면 `ALLOWED_HOST`관련 에러가 발생할 것이다. 이 문제를 해결하기위해 settings에 `ALLOWED_HOST`를 추가하였으면 재 배포를 수행한다. 배포된 상태에서 재 배포는 **update**를 사용한다.
+
+```
+(ve) $ zappa update dev
+```
+
+
+
+만약 다른 에러가 발생한다면 아래 명령어를 통해 확인 할 수 있다.
+
+```
+zappa tail
 ```
 
