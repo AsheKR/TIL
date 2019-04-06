@@ -326,16 +326,16 @@ AWS RDS - PostgreSQL을 사용하도록 한다.
 > ~/your_zappa_project/app/
 > 
 > app/       # project dir (django-admin.py로 생성도니 프로젝트)
->   config/
->   	settings/         # 설정을 패키지로 분리했을 때
->         __init__.py
->         production.py
->         development.py
->         ...
->     __init__.py
->     urls.py
->     wsgi.py
->   users/       # django-admin.py로 생성된 앱
+> config/
+> 	settings/         # 설정을 패키지로 분리했을 때
+>      __init__.py
+>      production.py
+>      development.py
+>      ...
+>  __init__.py
+>  urls.py
+>  wsgi.py
+> users/       # django-admin.py로 생성된 앱
 > ```
 >
 > 필자가 사용한 프로젝트 구성은 다음과 같다. 이 때 `your_zappa_project`에서 `zappa deploy`를 수행하였을 때 setting에서 프로젝트의 모듈의 위치를 불러오려하면 `ModuleNotFoundError`가 발생한다. 대표적으로 `ROOT_URLCONF`의 `config.urls`를 불러오지 못한다. 이를 성공적으로 작동시키려면 `app.config.urls`로 작성해야한다. 
@@ -442,3 +442,38 @@ Deployment complete!: https://x6kb437rh.execute-api.us-east-1.amazonaws.com/dev
 zappa tail
 ```
 
+
+
+## AWS RDS 접근 허용
+
+기본적으로 RDS inbound에 Lambda는 허용되지 않는다.
+
+Lambda의 보안그룹을 생성하여 RDS inbound에 포함될 수 있도록한다.
+
+```
+{
+    "dev": {
+        "django_settings": "frankie.settings", 
+        "s3_bucket": "zappatest-code",
+        "aws_region": "us-east-1",
+        "vpc_config": {
+            "SubnetIds": [ "subnet-f3446aba", "subnet-c5b8c79e"],
+            "SecurityGroupIds": [ "sg-9a9a1dfc"]
+        }
+     }
+}
+```
+
+이후 RDS inbound에 이곳에서 명시한 SecurityGroup을 추가하면 RDS에 추가될 수 있다.
+
+
+
+
+
+## 로그에 관련하여
+
+장고의 로그는 장고 내부에서 모두 처리되므로 Lambda 설정의 `Exception Handler`로 받아볼 수 없다.
+
+https://github.com/Miserlou/Zappa/issues/1609#issuecomment-422623554
+
+`zappa tail`시에는 Django에서 설정한 로그가 나오게된다.
